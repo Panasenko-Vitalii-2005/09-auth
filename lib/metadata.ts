@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 export const siteUrl = new URL(
-  process.env.NEXT_PUBLIC_SITE_URL || "https://notehub.com/",
+  process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:3000",
 );
 
 export function createPageMetadata(
@@ -30,8 +32,8 @@ export function createPageMetadata(
   };
 }
 
-export function noteExcerpt(content: string): string {
-  const text = content.replace(/\s+/g, " ").trim();
+export function noteExcerpt(content: string | null): string {
+  const text = (content ?? "").replace(/\s+/g, " ").trim();
   if (!text)
     return "Read this note and keep your thoughts organized with NoteHub.";
   if (text.length <= 160) return text;

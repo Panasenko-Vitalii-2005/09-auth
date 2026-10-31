@@ -119,7 +119,7 @@ function formHarness({ fail = false } = {}) {
         back: () => events.push({ type: "back" }),
       }),
     },
-    "@/lib/api": {
+    "@/lib/api/clientApi": {
       createNote: () => {
         throw new Error("Live API is disabled in tests");
       },

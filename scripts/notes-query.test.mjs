@@ -29,7 +29,7 @@ vm.runInNewContext(compiled, {
   exports: sourceModule.exports,
   require: (id) => {
     if (id === "@tanstack/react-query") return reactQuery;
-    if (id === "@/lib/api") {
+    if (id === "@/lib/api/clientApi") {
       return {
         fetchNotes: async (params) => {
           apiCalls.push(params);
@@ -191,4 +191,26 @@ test("All notes API parameters omit a tag while a category keeps its tag", async
   assert.equal(apiCalls[1].tag, "Work");
   assert.equal(apiCalls[1].page, 2);
   assert.equal(apiCalls[1].search, "search");
+});
+
+test("SSR prefetch uses its supplied server fetcher with matching hydration keys", async () => {
+  apiCalls.length = 0;
+  const serverCalls = [];
+  const serverClient = new reactQuery.QueryClient();
+  const options = notesQueryOptions(1, "", "Work", async (params) => {
+    serverCalls.push(params);
+    return previousData;
+  });
+  await serverClient.prefetchQuery(options);
+  assert.equal(serverCalls.length, 1);
+  assert.equal(serverCalls[0].tag, "Work");
+  assert.equal(apiCalls.length, 0);
+  const browserClient = new reactQuery.QueryClient();
+  reactQuery.hydrate(browserClient, reactQuery.dehydrate(serverClient));
+  assert.deepEqual(
+    browserClient.getQueryData(notesQueryOptions(1, "", "Work").queryKey),
+    previousData,
+  );
+  serverClient.clear();
+  browserClient.clear();
 });

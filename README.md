@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NoteHub — Homework 9: Authentication
 
-## Getting Started
+Homework 8 extended with cookie authentication, protected notes routes, and
+profile viewing/editing. Uses Next.js 16 App Router, TypeScript, Axios, TanStack
+Query, Zustand, and CSS Modules.
 
-First, run the development server:
+## Local setup
 
-```bash
+```powershell
+npm ci
+Copy-Item .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [NoteHub locally](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`NEXT_PUBLIC_API_URL` must be this Next.js application's origin, including its
+port, without a trailing slash or `/api` suffix. The supplied `/api` handlers
+forward requests to the [GoIT backend](https://notehub-api.goit.study/docs/).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If port 3000 is occupied, set another port in `.env.local` and use the same port
+in the command, for example `npm run dev -- --port 3109`. Restart development or
+rebuild production after changing a `NEXT_PUBLIC_` variable. Grafana occupied
+port 3000 during verification; browser tests used a temporary build override for
+port 3109. The checked-in example and ignored local configuration use port 3000.
 
-## Learn More
+## Vercel
 
-To learn more about Next.js, take a look at the following resources:
+Set `NEXT_PUBLIC_API_URL` to the application's actual production origin before
+building. Optionally set `NEXT_PUBLIC_SITE_URL` to that origin for SEO metadata.
+Redeploy after updating environment variables. No production URL is hardcoded.
+`.env.local` remains ignored; no legacy NoteHub API token is required.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Routes and cookies
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/`: public home.
+- `/sign-in`, `/sign-up`: auth forms; authenticated users redirect to `/profile`.
+- `/notes`: redirects to `/notes/filter/all`.
+- `/notes/filter/[...slug]`, `/notes/[id]`, `/notes/action/create`, `/profile`,
+  `/profile/edit`: protected by `proxy.ts`.
 
-## Deploy on Vercel
+The private layout owns note routes and `@modal`, preserving previews and direct
+note navigation. Typed query metadata, SSR hydration, search, pagination,
+filtering, and persisted note drafts remain.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`lib/api/api.ts` configures shared Axios. `clientApi.ts` uses browser credentials;
+`serverApi.ts` forwards request-specific cookies. Proxy validates the actual user
+and forwards refreshed cookies to both the browser and the current SSR request.
+Authentication tokens never enter Zustand or localStorage.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Checks
+
+```powershell
+npm run lint
+npm run build
+npx tsc --noEmit
+npx prettier --check .
+npm test
+git diff --check
+```
+
+The 27 isolated tests make no backend mutations. The official `app/api` tree is
+excluded from Prettier to keep its contents unchanged.
+
+See [HW9-REPORT.md](HW9-REPORT.md) for the route tree, file inventory, cookie flow,
+official-file verification, live browser/API results, and remaining limitations.

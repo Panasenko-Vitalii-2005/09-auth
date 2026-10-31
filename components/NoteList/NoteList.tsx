@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteNote } from "@/lib/api";
+import { deleteNote } from "@/lib/api/clientApi";
 import type { Note } from "@/types/note";
 import css from "./NoteList.module.css";
 
@@ -42,6 +42,7 @@ export default function NoteList({ notes, onPageEmpty }: NoteListProps) {
                 className={css.link}
                 href={`/notes/${note.id}`}
                 scroll={false}
+                prefetch={false}
               >
                 View details
               </Link>
