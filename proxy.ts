@@ -21,14 +21,18 @@ export async function proxy(request: NextRequest) {
       !session.success && isPrivate
         ? NextResponse.redirect(new URL("/sign-in", request.url))
         : session.success && isPublic
-          ? NextResponse.redirect(new URL("/profile", request.url))
+          ? NextResponse.redirect(new URL("/", request.url))
           : NextResponse.next({ request: { headers } });
 
     for (const cookie of session.setCookies)
       response.headers.append("set-cookie", cookie);
     if (!session.success) {
-      response.cookies.delete("accessToken");
-      response.cookies.delete("refreshToken");
+      for (const name of ["accessToken", "refreshToken"]) {
+        response.headers.append(
+          "Set-Cookie",
+          `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`,
+        );
+      }
     }
     response.headers.set("Cache-Control", "private, no-store");
     return response;

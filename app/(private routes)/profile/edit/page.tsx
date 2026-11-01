@@ -78,7 +78,7 @@ function EditProfileForm({ user }: { user: User }) {
           <button
             type="button"
             className={css.cancelButton}
-            onClick={() => router.push("/profile")}
+            onClick={() => router.back()}
             disabled={isPending}
           >
             Cancel

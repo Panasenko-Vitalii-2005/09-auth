@@ -187,7 +187,7 @@ test("all private URL families redirect unauthenticated visitors to sign-in", as
   }
 });
 
-test("authenticated auth routes redirect to profile; unrelated paths skip validation", async () => {
+test("authenticated auth routes redirect home; unrelated paths skip validation", async () => {
   let calls = 0;
   const proxy = proxyWith(async () => {
     calls++;
@@ -198,7 +198,7 @@ test("authenticated auth routes redirect to profile; unrelated paths skip valida
       (
         await proxy(new NextRequest(`http://localhost:3000${path}`))
       ).headers.get("location"),
-      "http://localhost:3000/profile",
+      "http://localhost:3000/",
     );
   }
   for (const path of [
@@ -247,4 +247,51 @@ test("Proxy preserves cookies and returns temporary failure on backend throttlin
   assert.equal(response.status, 503);
   assert.equal(response.headers.get("set-cookie"), null);
   assert.match(await response.text(), /Too many requests/);
+});
+
+test("invalid sessions expire both root-path auth cookies without replacing other Set-Cookie headers", async () => {
+  const existingCookie = "preference=dark; Path=/; SameSite=Lax";
+  const proxy = proxyWith(async () => ({
+    success: false,
+    cookieHeader: "accessToken=invalid; refreshToken=invalid",
+    setCookies: [existingCookie],
+  }));
+  for (const path of ["/profile", "/sign-in", "/sign-up"]) {
+    const response = await proxy(
+      new NextRequest(`https://example.test${path}`),
+    );
+    const values = response.headers.getSetCookie();
+    assert.equal(values.length, 3);
+    assert.equal(values[0], existingCookie);
+    for (const name of ["accessToken", "refreshToken"]) {
+      const parsed = values
+        .map((value) => cookie.parseSetCookie(value))
+        .find((value) => value.name === name);
+      assert.ok(parsed);
+      assert.ok(!parsed.value);
+      assert.equal(parsed.path, "/");
+      assert.equal(parsed.maxAge, 0);
+      assert.equal(parsed.expires.getTime(), 0);
+    }
+    assert.equal(response.status, path === "/profile" ? 307 : 200);
+  }
+});
+
+test("authenticated redirects preserve multiple refreshed Set-Cookie headers", async () => {
+  const refreshed = [
+    "accessToken=renewed; Path=/; HttpOnly",
+    "refreshToken=renewed-refresh; Path=/; HttpOnly",
+  ];
+  const proxy = proxyWith(async () => ({
+    success: true,
+    cookieHeader: "accessToken=renewed",
+    setCookies: refreshed,
+  }));
+  for (const path of ["/sign-in", "/sign-up"]) {
+    const response = await proxy(
+      new NextRequest(`https://example.test${path}`),
+    );
+    assert.equal(response.headers.get("location"), "https://example.test/");
+    assert.deepEqual(response.headers.getSetCookie(), refreshed);
+  }
 });
