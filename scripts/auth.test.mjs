@@ -162,6 +162,83 @@ function proxyWith(checkSession) {
   }).proxy;
 }
 
+test("Proxy serializes getAll cookie pairs, including empty input, instead of reading the raw Cookie header", async () => {
+  for (const { cookies, expected } of [
+    { cookies: [], expected: "" },
+    {
+      cookies: [
+        { name: "accessToken", value: "opaque==" },
+        { name: "refreshToken", value: "refresh.token" },
+        { name: "preference", value: "" },
+      ],
+      expected: "accessToken=opaque==; refreshToken=refresh.token; preference=",
+    },
+  ]) {
+    let reads = 0;
+    const received = [];
+    const proxy = proxyWith(async (incoming) => {
+      received.push(incoming);
+      return { success: true, cookieHeader: incoming, setCookies: [] };
+    });
+    const request = new NextRequest("https://example.test/profile", {
+      headers: { Cookie: "raw=ignored" },
+    });
+    Object.defineProperty(request, "cookies", {
+      value: {
+        getAll: () => {
+          reads++;
+          return cookies;
+        },
+      },
+    });
+    const response = await proxy(request);
+    assert.equal(response.status, 200);
+    assert.equal(reads, 1);
+    assert.deepEqual(received, [expected]);
+    assert.equal(response.headers.get("x-middleware-request-cookie"), expected);
+  }
+});
+
+test("all refreshed and expired cookie appends use exactly Set-Cookie", async () => {
+  const appendedNames = [];
+  function track(response) {
+    const append = response.headers.append.bind(response.headers);
+    response.headers.append = (name, value) => {
+      appendedNames.push(name);
+      append(name, value);
+    };
+    return response;
+  }
+  const proxy = loadSource("proxy.ts", {
+    "next/server": {
+      NextResponse: {
+        next: (options) => track(NextResponse.next(options)),
+        redirect: (url) => track(NextResponse.redirect(url)),
+      },
+    },
+    "@/lib/api/serverApi": {
+      checkSession: async (incoming) => ({
+        success: incoming === "accessToken=valid",
+        cookieHeader: incoming,
+        setCookies: ["preference=dark; Path=/", "theme=light; Path=/"],
+      }),
+    },
+    "@/lib/api/api": { NoteHubApiError: ApiError },
+  }).proxy;
+  for (const value of ["valid", "invalid"]) {
+    const response = await proxy(
+      new NextRequest("https://example.test/profile", {
+        headers: { Cookie: `accessToken=${value}` },
+      }),
+    );
+    assert.equal(
+      response.headers.getSetCookie().length,
+      value === "valid" ? 2 : 4,
+    );
+  }
+  assert.deepEqual(appendedNames, Array(6).fill("Set-Cookie"));
+});
+
 test("all private URL families redirect unauthenticated visitors to sign-in", async () => {
   const proxy = proxyWith(async () => ({
     success: false,

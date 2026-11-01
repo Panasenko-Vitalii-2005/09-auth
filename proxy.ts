@@ -14,7 +14,11 @@ export async function proxy(request: NextRequest) {
   if (!isPrivate && !isPublic) return NextResponse.next();
 
   try {
-    const session = await checkSession(request.headers.get("cookie") ?? "");
+    const cookies = request.cookies.getAll();
+    const cookieHeader = cookies
+      .map(({ name, value }) => `${name}=${value}`)
+      .join("; ");
+    const session = await checkSession(cookieHeader);
     const headers = new Headers(request.headers);
     headers.set("cookie", session.cookieHeader);
     const response =
@@ -25,7 +29,7 @@ export async function proxy(request: NextRequest) {
           : NextResponse.next({ request: { headers } });
 
     for (const cookie of session.setCookies)
-      response.headers.append("set-cookie", cookie);
+      response.headers.append("Set-Cookie", cookie);
     if (!session.success) {
       for (const name of ["accessToken", "refreshToken"]) {
         response.headers.append(
