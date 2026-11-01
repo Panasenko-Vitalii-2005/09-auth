@@ -6,6 +6,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function UnmatchedPage() {
-  // Keep the fallback in the same layout scope as the parallel modal slot.
+  // Resolve the custom not-found content and metadata for unmatched URLs.
   notFound();
 }

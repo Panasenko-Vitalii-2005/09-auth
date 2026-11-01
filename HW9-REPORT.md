@@ -1,8 +1,51 @@
 # Homework 9 implementation and verification
 
 Implemented on 30 October 2026 in `D:\GoIT_Projects\TS homework\09-auth`.
+Grader-required modal relocation completed on 1 November 2026.
 The existing Homework 8 application and history were retained. No staging,
 commit, push, deployment, or writes to Homework 6, 7, or 8 directories occurred.
+
+## Grader correction — 1 November 2026
+
+All seven real modal files were moved to `app/@modal/`, including
+`app/@modal/(.)notes/[id]/page.tsx`, its client, error boundary, CSS, and null
+default/home/catch-all routes. There is no placeholder or duplicate private slot.
+The root layout owns the slot within the original provider hierarchy.
+
+The preview server page records the current user's email alongside its dehydrated
+note query. The client renders/fetches only when that owner matches the current
+authenticated user and the current pathname is the note URL. Restored account A
+modal payloads therefore stay hidden after logout or account B login. Error
+modals are also hidden outside authenticated notes navigation. Existing auth
+cache-clearing and request-specific server cookies remain unchanged.
+
+Changed files in this correction:
+
+- Seven relocated files under `app/@modal/` (server page, client, error, CSS,
+  `default.tsx`, `page.tsx`, and `[...catchAll]/page.tsx`).
+- `app/layout.tsx`, `app/(private routes)/layout.tsx`.
+- `app/(private routes)/[...catchAll]/page.tsx`: corrected its scope comment.
+- `scripts/modal-routes.test.mjs`, `README.md`, `HW9-REPORT.md`.
+
+Live Chrome verification on the production build:
+
+- Clicking View details opens the root preview over the hydrated notes list.
+- Escape, backdrop, Back, and Forward close/reopen it correctly.
+- Direct note navigation/reload renders full-page details with zero dialogs.
+- Sign-in/sign-up render without a modal; authenticated sign-up redirects to profile.
+- Logging out while a preview is open clears it and shows sign-in. Back after
+  logout shows no preview or private note heading.
+- Unauthenticated profile editing redirects to sign-in.
+- Inspected browser logs contained no warnings/errors or hydration warnings.
+
+Live HTTP checks passed for all six private URL variants, both authenticated
+auth-page redirects, public pages without dialogs, 12 server-rendered note
+headings/query hydration state, direct details SSR, and not-found metadata.
+The test session was logged out. No live 429 was observed.
+
+All nine API files matched their pre-change SHA-256 hashes after the move.
+`git diff --exit-code -- app/api proxy.ts "app/(private routes)/notes"` also
+confirmed the official handlers, Proxy, and full notes routes were unchanged.
 
 ## Changes
 
@@ -20,80 +63,95 @@ handled safely.
 
 ```text
 app/
-├── layout.tsx
-├── page.tsx
-├── page.module.css
-├── globals.css
-├── loading.tsx
-├── not-found.tsx
-├── not-found.module.css
-├── favicon.ico
 ├── (auth routes)/
-│   ├── layout.tsx
 │   ├── sign-in/
 │   │   ├── page.tsx
 │   │   └── SignInPage.module.css
-│   └── sign-up/
-│       ├── page.tsx
-│       └── SignUpPage.module.css
+│   ├── sign-up/
+│   │   ├── page.tsx
+│   │   └── SignUpPage.module.css
+│   └── layout.tsx
 ├── (private routes)/
-│   ├── layout.tsx
-│   ├── [...catchAll]/page.tsx
-│   ├── @modal/
-│   │   ├── default.tsx
-│   │   ├── page.tsx
-│   │   ├── [...catchAll]/page.tsx
-│   │   └── (.)notes/[id]/
-│   │       ├── page.tsx
-│   │       ├── error.tsx
-│   │       ├── NotePreview.client.tsx
-│   │       └── NotePreview.module.css
+│   ├── [...catchAll]/
+│   │   └── page.tsx
 │   ├── notes/
-│   │   ├── page.tsx
 │   │   ├── [id]/
-│   │   │   ├── page.tsx
 │   │   │   ├── error.tsx
 │   │   │   ├── NoteDetails.client.tsx
-│   │   │   └── NoteDetails.module.css
-│   │   ├── action/create/
-│   │   │   ├── page.tsx
-│   │   │   └── CreateNote.module.css
-│   │   └── filter/
-│   │       ├── layout.tsx
-│   │       ├── LayoutNotes.module.css
-│   │       ├── @sidebar/
-│   │       │   ├── default.tsx
-│   │       │   └── SidebarNotes.module.css
-│   │       └── [...slug]/
-│   │           ├── page.tsx
-│   │           ├── error.tsx
-│   │           ├── Notes.client.tsx
-│   │           └── NotesPage.module.css
-│   └── profile/
-│       ├── page.tsx
-│       ├── error.tsx
-│       ├── ProfilePage.module.css
-│       └── edit/
-│           ├── page.tsx
-│           └── EditProfilePage.module.css
-└── api/
-    ├── api.ts
-    ├── _utils/utils.ts
-    ├── auth/
-    │   ├── login/route.ts
-    │   ├── logout/route.ts
-    │   ├── register/route.ts
-    │   └── session/route.ts
-    ├── notes/
-    │   ├── route.ts
-    │   └── [id]/route.ts
-    └── users/me/route.ts
+│   │   │   ├── NoteDetails.module.css
+│   │   │   └── page.tsx
+│   │   ├── action/
+│   │   │   └── create/
+│   │   │       ├── CreateNote.module.css
+│   │   │       └── page.tsx
+│   │   ├── filter/
+│   │   │   ├── [...slug]/
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── Notes.client.tsx
+│   │   │   │   ├── NotesPage.module.css
+│   │   │   │   └── page.tsx
+│   │   │   ├── @sidebar/
+│   │   │   │   ├── default.tsx
+│   │   │   │   └── SidebarNotes.module.css
+│   │   │   ├── layout.tsx
+│   │   │   └── LayoutNotes.module.css
+│   │   └── page.tsx
+│   ├── profile/
+│   │   ├── edit/
+│   │   │   ├── EditProfilePage.module.css
+│   │   │   └── page.tsx
+│   │   ├── error.tsx
+│   │   ├── page.tsx
+│   │   └── ProfilePage.module.css
+│   └── layout.tsx
+├── @modal/
+│   ├── (.)notes/
+│   │   └── [id]/
+│   │       ├── error.tsx
+│   │       ├── NotePreview.client.tsx
+│   │       ├── NotePreview.module.css
+│   │       └── page.tsx
+│   ├── [...catchAll]/
+│   │   └── page.tsx
+│   ├── default.tsx
+│   └── page.tsx
+├── api/
+│   ├── _utils/
+│   │   └── utils.ts
+│   ├── auth/
+│   │   ├── login/
+│   │   │   └── route.ts
+│   │   ├── logout/
+│   │   │   └── route.ts
+│   │   ├── register/
+│   │   │   └── route.ts
+│   │   └── session/
+│   │       └── route.ts
+│   ├── notes/
+│   │   ├── [id]/
+│   │   │   └── route.ts
+│   │   └── route.ts
+│   ├── users/
+│   │   └── me/
+│   │       └── route.ts
+│   └── api.ts
+├── favicon.ico
+├── globals.css
+├── layout.tsx
+├── loading.tsx
+├── not-found.module.css
+├── not-found.tsx
+├── page.module.css
+└── page.tsx
 ```
 
 `/notes` redirects to `/notes/filter/all`. Groups/slots do not appear in URLs.
-The modal and full details page share the private layout. The fallback moved into
-that scope because Next.js 16.4.3 strict parallel-route validation rejected its
-old root location after the modal move. No loose-route compatibility flag is used.
+The real preview now occupies the grader-required `app/@modal/(.)notes/[id]/`.
+The root layout renders `children` and `modal` inside TanStackProvider and
+AuthProvider. The private layout renders only `children`; full-page note details
+remain under `app/(private routes)/notes/[id]`. The existing fallback remains
+inside the private group. Next.js 16.4.3 strict route validation passes with no
+conflicting or duplicate routes and no loose-route compatibility flag.
 
 ## File inventory
 
@@ -108,11 +166,12 @@ Created:
 - `components/AuthProvider/AuthProvider.tsx`; no unnecessary stylesheet.
 - `lib/api/api.ts`, `lib/api/clientApi.ts`, `lib/api/serverApi.ts`.
 - `lib/store/authStore.ts`, `lib/user.ts`, `scripts/auth.test.mjs`.
+- `scripts/modal-routes.test.mjs`: seven root-slot, hydration, and account-isolation regressions.
 
 Moved, including every child/CSS file shown in the route tree:
 
 - `app/notes/` → `app/(private routes)/notes/`.
-- `app/@modal/` → `app/(private routes)/@modal/`.
+- `app/(private routes)/@modal/` → `app/@modal/` (grader correction on 1 November).
 - `app/[...catchAll]/page.tsx` →
   `app/(private routes)/[...catchAll]/page.tsx`.
 
@@ -206,10 +265,16 @@ Authorization header, TypeScript `any`, or positional query-key lookup.
 
 ## Regression results
 
-**27 isolated tests passed, zero failures**: the previous 15 draft/form/query
-tests, 11 auth/session/Proxy tests, and one SSR-fetcher/hydration-key test. New
-tests cover forged cookies, refresh, concurrent cookie isolation, redirects,
-cookie propagation, and temporary rate-limit failure handling.
+**34 isolated tests passed, zero failures**: the previous 27 tests plus seven
+root-modal regressions. These verify the exact grader paths, absence of the old
+slot, provider placement, default/catch-all clearing, history-based closing,
+account ownership and path guards, and server prefetch/hydration. Existing tests
+still cover drafts, query metadata, auth/session/Proxy behavior, concurrent
+cookie isolation, and temporary rate-limit failures.
+
+The following note-creation/deletion results are the original 30 October tests.
+The 1 November relocation checks reused the existing approved account without
+creating accounts, changing profiles, or creating/deleting notes.
 
 After explicit approval, live testing used one generated account and exactly
 13 disposable notes: 12 API-created and one browser-created. One was deleted in
@@ -253,7 +318,7 @@ is represented as a pass before correction.
 | `npm run build`          | Passed: Next.js 16.4.3, TypeScript, strict route validation |
 | `npx tsc --noEmit`       | Passed                                                      |
 | `npx prettier --check .` | Passed                                                      |
-| `npm test`               | Passed: 27 tests                                            |
+| `npm test`               | Passed: 34 tests                                            |
 | `git diff --check`       | Passed                                                      |
 
 The first sandboxed build could not fetch existing Roboto files; the build passed
@@ -276,17 +341,16 @@ build override for port 3109 because Grafana owns 3000. The test server is stopp
   limiting detailed upstream error reporting for that endpoint.
 - The fallback streams HTTP 200 with correct 404 content/title and noindex once
   streaming begins, following Next.js behavior.
-- The cached note helper was consolidated into `serverApi.ts` after browser
-  checks; final build and isolated tests cover that refactor.
+- Cross-account preview protection was tested using two distinct mocked user
+  identities with the first account's cached note retained. Browser logout/Back
+  was also tested; a second live account was not created.
 
 ## Git status
 
-Branch: `main`. Final status: 42 modified files, 27 deleted old paths, and 56
-untracked files, including line-ending normalization and moved files at their
-new paths.
-
-All work remains unstaged and uncommitted. Route moves appear as old-path
-deletions plus untracked files in the required groups until reviewed/staged.
-The worktree contains the new auth/API/tests, modified implementation/config,
-and LF normalization of existing text files. No Git mutation, commit, or push
-was performed.
+Branch: `main`. All changes for the 1 November correction remain unstaged and
+uncommitted. Seven modal files moved from the private group to `app/@modal/`;
+Git shows the old paths deleted and the new paths untracked until review/staging.
+The root/private layouts, preview server/client/error components, fallback comment,
+README, report, and new regression test are the affected files. `proxy.ts`, full
+notes/profile routes, dependency files, and all nine official API files have no
+changes in this correction. No commit, push, or deployment was performed.

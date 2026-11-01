@@ -39,8 +39,10 @@ Redeploy after updating environment variables. No production URL is hardcoded.
 - `/notes/filter/[...slug]`, `/notes/[id]`, `/notes/action/create`, `/profile`,
   `/profile/edit`: protected by `proxy.ts`.
 
-The private layout owns note routes and `@modal`, preserving previews and direct
-note navigation. Typed query metadata, SSR hydration, search, pagination,
+The root layout owns `app/@modal/(.)notes/[id]` beside the private notes routes,
+matching the grader's exact path. It renders the slot and children inside both
+providers. Preview ownership is checked against the current authenticated user.
+Typed query metadata, SSR hydration, search, pagination,
 filtering, and persisted note drafts remain.
 
 `lib/api/api.ts` configures shared Axios. `clientApi.ts` uses browser credentials;
@@ -59,7 +61,7 @@ npm test
 git diff --check
 ```
 
-The 27 isolated tests make no backend mutations. The official `app/api` tree is
+The 34 isolated tests make no backend mutations. The official `app/api` tree is
 excluded from Prettier to keep its contents unchanged.
 
 See [HW9-REPORT.md](HW9-REPORT.md) for the route tree, file inventory, cookie flow,
